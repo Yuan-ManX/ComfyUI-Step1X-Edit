@@ -15,14 +15,16 @@ from safetensors.torch import load_file
 from torchvision.transforms import functional as F
 from tqdm import tqdm 
 
-import sampling
-from modules.autoencoder import AutoEncoder
-from modules.conditioner import Qwen25VL_7b_Embedder as Qwen2VLEmbedder
-from modules.model_edit import Step1XParams, Step1XEdit
+import .src.sampling
+from .src.modules.autoencoder import AutoEncoder
+from .src.modules.conditioner import Qwen25VL_7b_Embedder as Qwen2VLEmbedder
+from .src.modules.model_edit import Step1XParams, Step1XEdit
+
 
 def cudagc():
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
+
 
 def load_state_dict(model, ckpt_path, device="cuda", strict=False, assign=True):
     if Path(ckpt_path).suffix == ".safetensors":
