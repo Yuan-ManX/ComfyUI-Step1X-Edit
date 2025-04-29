@@ -404,3 +404,150 @@ class ImageGenerator:
             images_list.append(self.output_process_image(F.to_pil_image(img), img_info))
         return images_list
 
+
+class LoadImagePath:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "image_path": ("STRING", {"multiline": False, "default": "./examples/input.jpg"}),
+        }}
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "load_path"
+    CATEGORY = "Step1X-Edit"
+
+    def load_path(self, image_path):
+        image = image_path
+        return (image,)
+
+
+class LoadAEModel:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "ae_path": ("STRING", {"multiline": False, "default": "./vae.safetensors"}),
+        }}
+
+    RETURN_TYPES = ("AE",)
+    RETURN_NAMES = ("ae",)
+    FUNCTION = "load_ae"
+    CATEGORY = "Step1X-Edit"
+
+    def load_ae(self, ae_path):
+        ae = ae_path
+        return (ae,)
+
+
+class LoadDITModel:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "dit_path": ("STRING", {"multiline": False, "default": "./step1x-edit-i1258.safetensors"}),
+        }}
+
+    RETURN_TYPES = ("DIT",)
+    RETURN_NAMES = ("dit",)
+    FUNCTION = "load_dit"
+    CATEGORY = "Step1X-Edit"
+
+    def load_dit(self, dit_path):
+        dit = dit_path
+        return (dit,)
+
+
+class LoadQwenVLModel:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "vl_path": ("STRING", {"multiline": False, "default": "Qwen/Qwen2.5-VL-7B-Instruct"}),
+        }}
+
+    RETURN_TYPES = ("QwenVL",)
+    RETURN_NAMES = ("vl",)
+    FUNCTION = "load_vl"
+    CATEGORY = "Step1X-Edit"
+
+    def load_vl(self, vl_path):
+        vl = vl_path
+        return (vl,)
+
+
+class Prompt:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "prompt": ("STRING", {"multiline": True, "default": "Change image to anime style."}),
+        }}
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("prompt",)
+    FUNCTION = "input_prompt"
+    CATEGORY = "Step1X-Edit"
+
+    def input_prompt(self, prompt):
+        return (prompt,)
+
+
+class GenerateEditedImage:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "image": ("IMAGE", {"default": "./examples/input.jpg"}),
+            "ae": ("AE", {"default": "./vae.safetensors"}),
+            "dit": ("DIT", {"default": "./step1x-edit-i1258.safetensors"}),
+            "vl": ("QwenVL", {"default": "Qwen/Qwen2.5-VL-7B-Instruct"}),
+            "device": ("STRING", {"default": "cuda"}),
+            "prompt": ("STRING", {"default": "Change image to anime style."}),
+            "num_samples": ("INT", {"default": 1}),
+            "num_steps": ("INT", {"default": 28, "min": 1, "max": 200}),
+            "cfg_guidance": ("FLOAT", {"default": 6.0, "min": 0.0, "max": 20.0}),
+            "seed": ("INT", {"default": 1234}),
+            "size_level": ("INT", {"default": 1024}),
+        }}
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "generate"
+    CATEGORY = "Step1X-Edit"
+
+    def generate(self, image, ae, dit, vl, device, prompt, num_samples, num_steps, cfg_guidance, seed, size_level):
+
+        image_edit = ImageGenerator(
+        ae_path=ae,
+        dit_path=dit,
+        qwen2vl_model_path=vl,
+        device=device,
+        max_length=640,
+        )
+
+        image = image_edit.generate_image(
+            prompt,
+            negative_prompt="",
+            ref_images=Image.open(image).convert("RGB"),
+            num_samples=num_samples,
+            num_steps=num_steps,
+            cfg_guidance=cfg_guidance,
+            seed=seed,
+            size_level=size_level,
+        )[0]
+        
+        return (image,)
+
+
+class SaveEditedImage:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "image": ("IMAGE",),
+            "save_path": ("STRING", {"default": "./output_image.png"}),
+        }}
+
+    RETURN_TYPES = ()
+    FUNCTION = "save"
+    CATEGORY = "Step1X-Edit"
+
+    def save(self, image, save_path):
+        image.save(save_path)
+        return ()
+
